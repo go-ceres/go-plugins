@@ -31,7 +31,7 @@ func init() {
 			Usage:   "This is the configuration path of the configuration component",
 			EnvVars: []string{"CERES_CONFIG"},
 		}),
-		plugin.WithInit(func(ctx *cli.Context) error {
+		plugin.WithAction(func(ctx *cli.Context) error {
 			path := ctx.String("config")
 			if path == "" {
 				return helper.MissingCommand(ctx)
