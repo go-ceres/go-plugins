@@ -16,6 +16,7 @@
 package file
 
 import (
+	"errors"
 	"github.com/go-ceres/cli/v2"
 	"github.com/go-ceres/go-ceres/config"
 	"github.com/go-ceres/go-ceres/helper"
@@ -23,21 +24,44 @@ import (
 )
 
 func init() {
-	plugin.Register(plugin.NewPlugin(
+	_ = plugin.Register(plugin.NewPlugin(
 		plugin.WithName("source"),
 		plugin.WithFlags(&cli.StringFlag{
 			Name:    "config",
 			Aliases: []string{"c"},
-			Usage:   "This is the configuration path of the configuration component",
+			Usage:   "设置文件路径",
 			EnvVars: []string{"CERES_CONFIG"},
+		}, &cli.StringFlag{
+			Name:    "decode",
+			Aliases: []string{"d"},
+			Usage:   "设置解码格式",
+			EnvVars: []string{"CERES_CONFIG_DECODE"},
+		}, &cli.BoolFlag{
+			Name:    "watch",
+			Aliases: []string{"w"},
+			Usage:   "是否监听配置文件变化",
+			EnvVars: []string{"CERES_CONFIG_WATCH"},
 		}),
 		plugin.WithAction(func(ctx *cli.Context) error {
 			path := ctx.String("config")
+			decode := ctx.String("decode")
+			watch := ctx.Bool("watch")
+			opts := make([]Option, 0)
 			if path == "" {
 				return helper.MissingCommand(ctx)
 			}
-			if err := config.Load(NewSource(path)); err != nil {
+			if decode != "" {
+				if config.Unmarshals[decode] == nil {
+					opts = append(opts, Unmarshal(decode))
+				} else {
+					return errors.New("没有配置该解码格式")
+				}
+			}
+			if err := config.Load(NewSource(path, opts...)); err != nil {
 				return err
+			}
+			if watch {
+				config.Watch()
 			}
 			return nil
 		}),
